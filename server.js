@@ -29,8 +29,8 @@ app.set("view engine", "handlebars");
  
 app.use(express.static("public"));
 
-mongoose.connect("mongodb://localhost/nytimesDB", { useNewUrlParser: true });
-
+//mongoose.connect("mongodb://localhost/nytimesDB", { useNewUrlParser: true });
+mongoose.connect("mongodb://heroku_9gdgkfhb:5ucu6r92e17jkfsj4sq9vn5i43@ds261616.mlab.com:61616/heroku_9gdgkfhb");
 // Routes
 
 ///GET request to render Handlebars pages
