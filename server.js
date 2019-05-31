@@ -1,14 +1,25 @@
+//dependencies
 var express = require("express");
 var logger = require("morgan");
 var mongoose = require("mongoose");
+var path = require("path");
 
+//scraping tools
 var axios = require("axios");
 var cheerio = require("cheerio");
 
+//access to Note and Article
+//var Note = require("./models/Note.js");
+//var Article = require("./models/Article.js");
 var db = require("./models");
 
-var PORT = 3000;
+//set up mongoose to use ES6 promises
+mongoose.Promise = Promise;
 
+//heroku or local
+var PORT = process.env.PORT || 3000;
+
+//initialize Express
 var app = express();
 
 app.use(logger("dev")) 
@@ -16,75 +27,38 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json()); 
 app.use(express.static("public"));
 
-// Connect to the Mongo DB
-mongoose.connect("mongodb://localhost/reddit", { useNewUrlParser: true });
+//set handlebars
+var exphbs = require("express-handlebars");
 
-// Routes
+app.engine("handlebars", exphbs({
+    defaultLayout: "main",
+    partialsDir: path.join(__dirname, "/views/layouts/partials")
+}));
+app.set("view engine", "handlebars");
 
-// A GET route for scraping the Reddit website
-app.get("/scrape", function(req, res) {
-  axios.get("https://old.reddit.com/r/webdev/").then(function(response) {
-    var $ = cheerio.load(response.data);
+// Connect to the Mongo DB with Mongoose
+mongoose.connect("mongodb://localhost/nytDataBase", { useNewUrlParser: true });
 
-    $("p.title").each(function(i, element) {
-      var result = {};
-
-      result.title = $(this)
-        .text();
-      result.link = $(this)
-        .children()
-        .attr("href");
-
-      db.Article.create(result)
-        .then(function(dbArticle) {
-          console.log(dbArticle);
-        })
-        .catch(function(err) {
-          console.log(err);
-        });
-    });
-
-    res.send("website scraped");
-  });
+/*db.on("error", function(error) {
+    console.log("Mongoose error: ", error);
 });
-
-// Route for getting all Articles from the db
-app.get("/articles", function(req, res) {
-  db.Article.find({})
-    .then(function(dbArticle) {
-      res.json(dbArticle);
-    })
-    .catch(function(err) {
-      res.json(err);
-    });
-});
-
-// Route for grabbing a specific Article by id, populate it with it's note
-app.get("/articles/:id", function(req, res) {
-  db.Article.findOne({ _id: req.params.id })
-    .populate("note")
-    .then(function(dbArticle) {
-      res.json(dbArticle);
-    })
-    .catch(function(err) {
-      res.json(err);
-    });
-});
-
-// Route for saving/updating an Article's associated Note
-app.post("/articles/:id", function(req, res) {
-  db.Note.create(req.body)
-    .then(function(dbNote) {
-      return db.Article.findOneAndUpdate({ _id: req.params.id }, { note: dbNote._id }, { new: true });
-    })
-    .then(function(dbArticle) {
-      res.json(dbArticle);
-    })
-    .catch(function(err) {
-      res.json(err);
-    });
-});
+db.once("open", function() {
+    console.log("connected to MongoDB");
+});*/
 
 app.listen(PORT, function() {
-  console.log("App running on port " + PORT + "!");
+    console.log("App running on port " + PORT + "!");
+});
+
+//routes
+
+//get request to render handlebars pages
+app.get("/", function(req, res) {
+    db.Article.find({"saved": false}, function(error, data) {
+        var hbsObject = {
+            article: data
+        };
+    });
+    console.log("Home" + hbsObject);
+    res.render("home", hbsObject);
 });
