@@ -1,64 +1,75 @@
-//dependencies
 var express = require("express");
 var logger = require("morgan");
 var mongoose = require("mongoose");
-var path = require("path");
 
-//scraping tools
 var axios = require("axios");
 var cheerio = require("cheerio");
 
-//access to Note and Article
-//var Note = require("./models/Note.js");
-//var Article = require("./models/Article.js");
 var db = require("./models");
 
-//set up mongoose to use ES6 promises
-mongoose.Promise = Promise;
-
-//heroku or local
 var PORT = process.env.PORT || 3000;
 
-//initialize Express
 var app = express();
 
-app.use(logger("dev")) 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json()); 
-app.use(express.static("public"));
+app.use(logger("dev"));
 
-//set handlebars
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+// Set Handlebars.
 var exphbs = require("express-handlebars");
 
-app.engine("handlebars", exphbs({
-    defaultLayout: "main",
-    partialsDir: path.join(__dirname, "/views/layouts/partials")
-}));
+app.engine("handlebars", exphbs({ defaultLayout: "main" }));
 app.set("view engine", "handlebars");
 
-// Connect to the Mongo DB with Mongoose
-mongoose.connect("mongodb://localhost/nytDataBase", { useNewUrlParser: true });
+ 
+app.use(express.static("public"));
 
-/*db.on("error", function(error) {
-    console.log("Mongoose error: ", error);
-});
-db.once("open", function() {
-    console.log("connected to MongoDB");
-});*/
+mongoose.connect("mongodb://localhost/nytimesDB", { useNewUrlParser: true });
 
-app.listen(PORT, function() {
-    console.log("App running on port " + PORT + "!");
-});
+// Routes
 
-//routes
-
-//get request to render handlebars pages
+///GET request to render Handlebars pages
 app.get("/", function(req, res) {
-    db.Article.find({"saved": false}, function(error, data) {
-        var hbsObject = {
-            article: data
-        };
-    });
-    console.log("Home" + hbsObject);
+  db.Article.find({"saved": false}, function(error, data) {
+    var hbsObject = {
+      article: data
+    };
+    console.log(hbsObject);
     res.render("home", hbsObject);
+  });
+});
+
+// A GET route for scraping the Reddoit/WebDev website
+app.get("/scrape", function(req, res) {
+  axios.get("http://www.nytimes.com/").then(function(response) {    
+    var $ = cheerio.load(response.data);
+    console.log($);
+
+    $("article").each(function(i, element) {
+      var result = {};
+
+      result.title = $(this).find("h2").text();
+      result.link = "https://www.nytimes.com" + $(this).find("a").attr("href");
+      result.summary = $(this).find("p").text();
+
+      db.Article.create(result)
+        .then(function(dbArticle) {
+          // View the added result in the console
+          console.log(dbArticle);
+        })
+        .catch(function(err) {
+          // If an error occurred, log it
+          console.log(err);
+        });
+    });
+
+    // Send a message to the client
+    res.send("Scrape Complete");
+  });
+});
+
+// Start the server
+app.listen(PORT, function() {
+  console.log("App running on port " + PORT + "!");
 });
