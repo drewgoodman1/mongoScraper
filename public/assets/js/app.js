@@ -22,3 +22,40 @@ $(".save").on("click", function() {
         window.location = "/";
     })
 });
+
+//click handler for delete article button
+$(".delete").on("click", function() {
+    var thisId = $(this).attr("data-id");
+    $.ajax({
+        method: "POST",
+        url: "/articles/delete/" + thisId
+    }).done(function(data) {
+        window.location = "/saved"
+    })
+});
+
+//click handler to create a note
+$(".saveNote").on("click", function() {
+    var thisId = $(this).attr("data-id");
+    if (!$("#noteText" + thisId).val()) {
+        alert("Please enter a note.")
+    }else {
+        $.ajax({
+            method: "POST",
+            url: "/notes/save/" + thisId,
+            data: {
+                text: $("#noteText" + thisId).val()
+            }
+        }).done(function(data) {
+            console.log(data);
+            $("#noteText" + thisId).val("");
+            $(".modalNote").modal("hide");
+            window.location = "/saved"
+        });
+    }
+});
+
+
+
+
+

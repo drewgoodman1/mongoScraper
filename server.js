@@ -81,7 +81,7 @@ app.get("/saved", function(req, res) {
     });
 });
 
-// a POST route to update the articles saved field to true
+// a POST route to update the article's saved field to true
 app.post("/articles/save/:id", function(req, res) {
     db.Article.findOneAndUpdate({ "_id": req.params.id }, { "saved": true})
     .exec(function(err, doc) {
@@ -93,6 +93,78 @@ app.post("/articles/save/:id", function(req, res) {
         }
     });
 });
+
+// a POST route to change article's saved field to false
+app.post("/articles/delete/:id", function(req, res) {
+    // Use the article id to find and update its saved boolean
+    db.Article.findOneAndUpdate({ "_id": req.params.id }, {"saved": false, "notes": []})
+    .exec(function(err, doc) {
+        if (err) {
+        console.log(err);
+        }
+        else {
+        res.send(doc);
+        }
+    });
+});
+
+// Delete an article
+app.post("/articles/delete/:id", function(req, res) {
+    // Use the article id to find and update its saved boolean
+    Article.findOneAndUpdate({ "_id": req.params.id }, {"saved": false, "notes": []})
+    // Execute the above query
+    .exec(function(err, doc) {
+      // Log any errors
+      if (err) {
+        console.log(err);
+      }
+      else {
+        // Or send the document to the browser
+        res.send(doc);
+      }
+    });
+});
+
+// Create a new note
+app.post("/notes/save/:id", function(req, res) {
+    // Create a new note and pass the req.body to the entry
+    var newNote = new db.Note({
+      body: req.body.text,
+      article: req.params.id
+    });
+    console.log(req.body)
+    // And save the new note the db
+    newNote.save(function(error, note) {
+      // Log any errors
+      if (error) {
+        console.log(error);
+      }
+      // Otherwise
+      else {
+        // Use the article id to find and update it's notes
+        db.Article.findOneAndUpdate({ "_id": req.params.id }, {$push: { "notes": note } })
+        // Execute the above query
+        .exec(function(err) {
+          // Log any errors
+          if (err) {
+            console.log(err);
+            res.send(err);
+          }
+          else {
+            // Or send the note to the browser
+            res.send(note);
+          }
+        });
+      }
+    });
+  });
+  
+
+
+
+
+
+
 // Start the server
 app.listen(PORT, function() {
     console.log("App running on port " + PORT + "!");
