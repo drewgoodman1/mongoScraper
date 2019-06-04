@@ -120,7 +120,7 @@ app.post("/articles/delete/:id", function(req, res) {
         }
         else {
             res.send(doc);
-        }
+        git }
     });
 });
 
